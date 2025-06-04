@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game Distribuido</title>
+    <link rel="stylesheet" href="/styles/game.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>Snake Game</h1>
+            <div class="score-container">
+                <span>Puntuación: </span>
+                <span id="score">0</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="controls">
+            <button id="startButton">Iniciar Juego</button>
+            <button id="pauseButton">Pausar</button>
+        </div>
+        
+        <div class="leaderboard">
+            <h2>Tabla de Clasificación</h2>
+            <div id="leaderboardList"></div>
+        </div>
+    </div>
+    
+    <script src="/scripts/game.js"></script>
+</body>
+</html> 

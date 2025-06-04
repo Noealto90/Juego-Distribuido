@@ -1,0 +1,8 @@
+firebase-admin==6.2.0
+flask==2.3.3
+flask-cors==4.0.0
+python-dotenv==1.0.0
+websockets==11.0.3
+pygame==2.5.2
+psutil==5.9.5
+asyncio==3.4.3 
