@@ -31,7 +31,7 @@ class SnakeGame {
         this.glowIntensity = 0; // Intensidad del brillo
         this.glowDirection = 1; // Dirección del brillo
         this.colorChangeSpeed = 0.4; // Velocidad de cambio de color ultra rápida
-        this.numObstacles = 5; // Número de obstáculos a generar
+        this.numObstacles = 15; // Aumentado de 5 a 15 obstáculos
 
         // Elementos del DOM
         this.scoreElement = document.getElementById('score');
@@ -111,10 +111,24 @@ class SnakeGame {
         }
 
         // Check collision with obstacles
-        if (this.obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
+        if (!this.isSpecialMode && this.obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
             this.gameOver = true;
             this.showGameOver();
             return;
+        }
+
+        // Check if obstacle is eaten during special mode
+        if (this.isSpecialMode) {
+            const obstacleIndex = this.obstacles.findIndex(obstacle => obstacle.x === head.x && obstacle.y === head.y);
+            if (obstacleIndex !== -1) {
+                // Remove the eaten obstacle
+                this.obstacles.splice(obstacleIndex, 1);
+                // Add points for eating obstacle
+                this.score += 20;
+                this.showScoreAnimation(head.x, head.y, 20, '#9B59B6');
+                // Update score display
+                this.scoreElement.textContent = this.score;
+            }
         }
 
         this.snake.unshift(head);
