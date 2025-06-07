@@ -1,82 +1,129 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Snake Game</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles/game.css') }}">
-</head>
-<body>
-    <div class="game-container">
-        <div class="game-info">
-            <div class="score-container">
-                <span>Puntuación: </span>
-                <span id="score">0</span>
-            </div>
-            <div id="specialMode" class="special-mode" style="display: none;">
-                <span>¡Super Poder!</span>
-                <span id="specialTime"></span>
-            </div>
-            <div class="time-container">
-                <span>Tiempo: </span>
-                <span id="time">00:00</span>
-            </div>
-        </div>
-        <div class="game-area">
-            <canvas id="gameCanvas" width="600" height="400"></canvas>
-            <div id="gameOver" class="game-over" style="display: none;">
-                <h2>¡Juego Terminado!</h2>
-                <p>Puntuación Final: <span id="finalScore">0</span></p>
-                <p>Tiempo: <span id="finalTime">00:00</span></p>
-            </div>
-        </div>
-        <div class="controls">
-            <button id="startBtn">Iniciar Juego</button>
-            <button id="playAgainBtn" style="display: none;">Jugar de Nuevo</button>
-        </div>
-        <div class="instructions">
-            <div class="instructions-header">
-                <h2>¡Bienvenido al Snake Game!</h2>
-            </div>
-            
-            <div class="instructions-section">
-                <h3>Controles</h3>
-                <div class="controls-grid">
-                    <div class="control-item">
-                        <span class="key">W</span>
-                        <span class="action">Arriba</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="key">A</span>
-                        <span class="action">Izquierda</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="key">S</span>
-                        <span class="action">Abajo</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="key">D</span>
-                        <span class="action">Derecha</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="instructions-section">
-                <h3>Objetivos</h3>
-                <div class="objectives">
-                    <div class="objective-item">
-                        <span class="text">Come las manzanas rojas para crecer y sumar puntos</span>
-                    </div>
-                    <div class="objective-item">
-                        <span class="text">Las manzanas amarillas te dan poder especial</span>
-                    </div>
-                    <div class="objective-item">
-                        <span class="text">¡Evita chocar con los bordes, obstaculos y contigo mismo!</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles/game.css') }}"
+    />
+  </head>
+  <body>
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
     </div>
+
+    <div class="game-container">
+      <div class="game-info">
+        <div class="score-container">
+          <i class="fas fa-trophy"></i>
+          <span>Puntuación: </span>
+          <span id="score">0</span>
+        </div>
+        <div id="specialMode" class="special-mode" style="display: none">
+          <i class="fas fa-bolt"></i>
+          <span>¡Super Poder!</span>
+          <span id="specialTime"></span>
+        </div>
+        <div class="time-container">
+          <i class="fas fa-clock"></i>
+          <span>Tiempo: </span>
+          <span id="time">00:00</span>
+        </div>
+      </div>
+
+      <div class="game-area">
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div id="gameOver" class="game-over" style="display: none">
+          <h2><i class="fas fa-skull"></i> ¡Juego Terminado!</h2>
+          <p>
+            <i class="fas fa-trophy"></i> Puntuación Final:
+            <span id="finalScore">0</span>
+          </p>
+          <p>
+            <i class="fas fa-clock"></i> Tiempo:
+            <span id="finalTime">00:00</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">
+          <i class="fas fa-play"></i>
+          Iniciar Juego
+        </button>
+        <button id="playAgainBtn" style="display: none">
+          <i class="fas fa-redo"></i>
+          Jugar de Nuevo
+        </button>
+      </div>
+
+      <div class="instructions">
+        <div class="instructions-header">
+          <h2>¡Bienvenido al Snake Game!</h2>
+        </div>
+
+        <div class="instructions-section">
+          <h3>Controles</h3>
+          <div class="controls-grid">
+            <div class="control-item">
+              <span class="key">W</span>
+              <span class="action">Arriba</span>
+            </div>
+            <div class="control-item">
+              <span class="key">A</span>
+              <span class="action">Izquierda</span>
+            </div>
+            <div class="control-item">
+              <span class="key">S</span>
+              <span class="action">Abajo</span>
+            </div>
+            <div class="control-item">
+              <span class="key">D</span>
+              <span class="action">Derecha</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="instructions-section">
+          <h3>Objetivos</h3>
+          <div class="objectives">
+            <div class="objective-item">
+              <i class="fas fa-apple-alt icon"></i>
+              <span class="text"
+                >Come las manzanas rojas para crecer y sumar puntos</span
+              >
+            </div>
+            <div class="objective-item">
+              <i class="fas fa-star icon"></i>
+              <span class="text"
+                >Las manzanas amarillas te dan poder especial</span
+              >
+            </div>
+            <div class="objective-item">
+              <i class="fas fa-exclamation-triangle icon"></i>
+              <span class="text"
+                >¡Evita chocar con los bordes, obstáculos y contigo mismo!</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="{{ url_for('static', filename='scripts/game.js') }}"></script>
-</body>
-</html> 
+  </body>
+</html>
