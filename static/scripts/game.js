@@ -201,31 +201,46 @@ class SnakeGame {
     }
   }
 
-  generateObstacles() {
+  async generateObstacles() {
     this.obstacles = [];
-    const maxX = Math.floor(this.canvas.width / this.gridSize);
-    const maxY = Math.floor(this.canvas.height / this.gridSize);
-
-    for (let i = 0; i < this.numObstacles; i++) {
-      let obstacle;
-      do {
-        obstacle = {
-          x: Math.floor(Math.random() * maxX),
-          y: Math.floor(Math.random() * maxY),
-        };
-      } while (
-        // Evitar que los obstáculos aparezcan sobre la serpiente
-        this.snake.some(
-          (segment) => segment.x === obstacle.x && segment.y === obstacle.y
-        ) ||
-        // Evitar que los obstáculos aparezcan sobre la comida
-        (this.food.x === obstacle.x && this.food.y === obstacle.y) ||
-        // Evitar que los obstáculos aparezcan sobre otros obstáculos
-        this.obstacles.some(
-          (obs) => obs.x === obstacle.x && obs.y === obstacle.y
-        )
-      );
-      this.obstacles.push(obstacle);
+    try {
+      const obstaculosRef = collection(db, "obstaculo");
+      const querySnapshot = await getDocs(obstaculosRef);
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.obstaculo && Array.isArray(data.obstaculo)) {
+          this.obstacles = data.obstaculo.map(obs => ({
+            x: obs.x,
+            y: obs.y
+          }));
+          console.log("Obstáculos cargados desde Firebase:", this.obstacles);
+        }
+      });
+    } catch (error) {
+      console.error("Error al cargar obstáculos desde Firebase:", error);
+      // En caso de error, generar obstáculos por defecto
+      const maxX = Math.floor(this.canvas.width / this.gridSize);
+      const maxY = Math.floor(this.canvas.height / this.gridSize);
+      
+      for (let i = 0; i < this.numObstacles; i++) {
+        let obstacle;
+        do {
+          obstacle = {
+            x: Math.floor(Math.random() * maxX),
+            y: Math.floor(Math.random() * maxY),
+          };
+        } while (
+          this.snake.some(
+            (segment) => segment.x === obstacle.x && segment.y === obstacle.y
+          ) ||
+          (this.food && this.food.x === obstacle.x && this.food.y === obstacle.y) ||
+          this.obstacles.some(
+            (obs) => obs.x === obstacle.x && obs.y === obstacle.y
+          )
+        );
+        this.obstacles.push(obstacle);
+      }
     }
   }
 
@@ -859,7 +874,7 @@ class SnakeGame {
     this.score = 0;
     this.speed = 200;
     this.food = await this.generateFood();
-    this.generateObstacles(); // Generar obstáculos al iniciar
+    await this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
     this.elapsedTime = 0;
