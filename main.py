@@ -3,11 +3,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from typing import Dict, List
 import datetime
+import time
+import threading
 
 # Inicializar Firebase
 cred = credentials.Certificate('clave-firebase.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
+# Umbral de sobrecarga (en porcentaje)
+SOBRECARGA_CPU = 80
+SOBRECARGA_RAM = 80
 
 def calcular_puntuacion_nodo(nodo: Dict) -> float:
     """
@@ -26,6 +32,62 @@ def calcular_puntuacion_nodo(nodo: Dict) -> float:
 
 def seleccionar_mejor_nodo(nodos: List[Dict]) -> Dict:
     return min(nodos, key=calcular_puntuacion_nodo)
+
+def nodo_sobrecargado(nodo: Dict) -> bool:
+    """
+    Verifica si un nodo está sobrecargado basado en CPU y RAM
+    """
+    return nodo['cpu'] > SOBRECARGA_CPU or nodo['ram'] > SOBRECARGA_RAM
+
+def reasignar_tareas(nodo_sobrecargado: Dict):
+    """
+    Reasigna las tareas cuando un nodo específico está sobrecargado
+    """
+    try:
+        # Obtener todos los nodos
+        nodos_ref = db.collection('nodos')
+        nodos = [doc.to_dict() for doc in nodos_ref.stream()]
+        
+        if len(nodos) < 2:
+            print("Se necesitan al menos 2 nodos para realizar las asignaciones")
+            return
+        
+        # Encontrar el nodo menos cargado (excluyendo el nodo sobrecargado)
+        nodos_disponibles = [n for n in nodos if n['nombre'] != nodo_sobrecargado['nombre']]
+        if not nodos_disponibles:
+            return
+            
+        nodo_menos_cargado = min(nodos_disponibles, key=calcular_puntuacion_nodo)
+        
+        # Actualizar todas las asignaciones al nodo menos cargado
+        asignaciones_ref = db.collection('asignaciones')
+        asignaciones = asignaciones_ref.stream()
+        
+        for asignacion in asignaciones:
+            asignaciones_ref.document(asignacion.id).update({
+                'nodo': nodo_menos_cargado['nombre'],
+                'fecha_actualizacion': datetime.datetime.now()
+            })
+        
+        print(f"Tareas reasignadas al nodo {nodo_menos_cargado['nombre']} debido a sobrecarga del nodo {nodo_sobrecargado['nombre']}")
+    except Exception as e:
+        print(f"Error en reasignación de tareas: {str(e)}")
+
+def monitoreo_por_eventos():
+    """
+    Función que monitorea los cambios en los nodos usando eventos
+    """
+    def on_nodo_change(doc_snapshot, changes, read_time):
+        for change in changes:
+            if change.type.name == 'MODIFIED':
+                nodo = change.document.to_dict()
+                if nodo_sobrecargado(nodo):
+                    print(f"Nodo {nodo['nombre']} sobrecargado - CPU: {nodo['cpu']}%, RAM: {nodo['ram']}%")
+                    reasignar_tareas(nodo)
+
+    # Suscribirse a cambios en la colección de nodos
+    nodos_ref = db.collection('nodos')
+    nodos_ref.on_snapshot(on_nodo_change)
 
 def asignar_tareas():
     # Obtener todos los nodos
@@ -75,5 +137,15 @@ def asignar():
     asignar_tareas()
     return "Tareas asignadas correctamente"
 
+@app.route('/iniciar-monitoreo')
+def iniciar_monitoreo():
+    # Iniciar el monitoreo basado en eventos
+    thread = threading.Thread(target=monitoreo_por_eventos, daemon=True)
+    thread.start()
+    return "Monitoreo por eventos iniciado correctamente"
+
 if __name__ == '__main__':
+    # Iniciar el monitoreo al arrancar la aplicación
+    thread = threading.Thread(target=monitoreo_por_eventos, daemon=True)
+    thread.start()
     app.run(debug=True) 

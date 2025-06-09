@@ -1,3 +1,29 @@
+// Importar Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  onSnapshot,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// Configuración de Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx",
+  authDomain: "proyectoso-89112.firebaseapp.com",
+  projectId: "proyectoso-89112",
+  storageBucket: "proyectoso-89112.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890",
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+console.log("Conectada a Firebase desde 1");
+
 class SnakeGame {
   constructor(canvas) {
     this.canvas = canvas;
@@ -6,7 +32,7 @@ class SnakeGame {
     this.snake = [{ x: 5, y: 5 }];
     this.direction = "right";
     this.nextDirection = "right";
-    this.food = this.generateFood();
+    this.food = null; // Inicialmente no hay comida
     this.obstacles = []; // Array para almacenar obstáculos
     this.score = 0;
     this.gameOver = false;
@@ -41,22 +67,138 @@ class SnakeGame {
     this.gameOverElement = document.getElementById("gameOver");
     this.finalScoreElement = document.getElementById("finalScore");
     this.finalTimeElement = document.getElementById("finalTime");
+
+    // Agregar propiedades para el monitoreo
+    this.nodoActual = null;
+    this.tareaActual = null;
+    this.monitoreoActivo = false;
+    this.ultimoCPU = 0;
+    this.ultimoRAM = 0;
+    this.umbralCambio = 5; // Porcentaje de cambio mínimo para actualizar
+
+    // Iniciar monitoreo de asignaciones
+    this.iniciarMonitoreoAsignaciones();
   }
 
-  generateFood() {
+  async iniciarMonitoreoAsignaciones() {
+    try {
+      const asignacionesRef = collection(db, "asignaciones");
+
+      // Escuchar cambios en las asignaciones
+      onSnapshot(asignacionesRef, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "modified") {
+            const nuevaAsignacion = change.doc.data();
+
+            // Si la asignación es para este nodo, actualizar el estado
+            if (nuevaAsignacion.nodo === this.nodoActual) {
+              this.tareaActual = nuevaAsignacion.tarea;
+              console.log(`Tarea actualizada: ${this.tareaActual}`);
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error al iniciar monitoreo de asignaciones:", error);
+    }
+  }
+
+  async actualizarEstadoNodo(cpu, ram) {
+    try {
+      if (!this.nodoActual) return;
+
+      // Verificar si el cambio es significativo
+      const cambioCPU = Math.abs(cpu - this.ultimoCPU);
+      const cambioRAM = Math.abs(ram - this.ultimoRAM);
+
+      if (cambioCPU >= this.umbralCambio || cambioRAM >= this.umbralCambio) {
+        const nodosRef = collection(db, "nodos");
+        const querySnapshot = await getDocs(nodosRef);
+
+        querySnapshot.forEach(async (doc) => {
+          if (doc.data().nombre === this.nodoActual) {
+            await updateDoc(doc.ref, {
+              cpu: cpu,
+              ram: ram,
+              ultima_actualizacion: new Date(),
+            });
+
+            // Actualizar valores últimos
+            this.ultimoCPU = cpu;
+            this.ultimoRAM = ram;
+
+            console.log(
+              `Estado del nodo actualizado - CPU: ${cpu}%, RAM: ${ram}%`
+            );
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error al actualizar estado del nodo:", error);
+    }
+  }
+
+  async generateFood() {
     const maxX = Math.floor(this.canvas.width / this.gridSize);
     const maxY = Math.floor(this.canvas.height / this.gridSize);
-    let food;
-    do {
-      food = {
-        x: Math.floor(Math.random() * maxX),
-        y: Math.floor(Math.random() * maxY),
-        isSpecial: Math.random() < 0.25, // 25% de probabilidad de ser manzana especial
+
+    try {
+      const comidaRef = collection(db, "comida");
+      const querySnapshot = await getDocs(comidaRef);
+
+      let normalFood = null;
+      let respaldoFood = null;
+      let normalDocRef = null;
+      let respaldoDocRef = null;
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (doc.id === "Normal") {
+          normalFood = data;
+          normalDocRef = doc.ref;
+        } else if (doc.id === "Respaldo") {
+          respaldoFood = data;
+          respaldoDocRef = doc.ref;
+        }
+      });
+
+      // Intentar usar la manzana Normal primero
+      if (normalFood && normalFood.estado === 0) {
+        await updateDoc(normalDocRef, { estado: 1 });
+        console.log("Usando manzana Normal");
+        return {
+          x: normalFood.ubicacion.x,
+          y: normalFood.ubicacion.y,
+          isSpecial: normalFood.tipo === "Especial",
+        };
+      }
+
+      // Si Normal no está disponible, intentar usar Respaldo
+      if (respaldoFood && respaldoFood.estado === 0) {
+        await updateDoc(respaldoDocRef, { estado: 1 });
+        console.log("Usando manzana Respaldo");
+        return {
+          x: respaldoFood.ubicacion.x,
+          y: respaldoFood.ubicacion.y,
+          isSpecial: respaldoFood.tipo === "Especial",
+        };
+      }
+
+      // Si ninguna está disponible, usar posición por defecto
+      console.log("No hay manzanas disponibles en Firebase");
+      return {
+        x: 17,
+        y: 18,
+        isSpecial: false,
       };
-    } while (
-      this.snake.some((segment) => segment.x === food.x && segment.y === food.y)
-    );
-    return food;
+    } catch (error) {
+      console.error("Error al consultar la colección comida:", error);
+      return {
+        x: 17,
+        y: 18,
+        isSpecial: false,
+      };
+    }
   }
 
   generateObstacles() {
@@ -87,7 +229,7 @@ class SnakeGame {
     }
   }
 
-  update() {
+  async update() {
     if (this.gameOver) return;
 
     // Update direction based on nextDirection
@@ -170,7 +312,10 @@ class SnakeGame {
         this.score += 10;
         this.showScoreAnimation(head.x, head.y, 10, "#2ECC71");
       }
-      this.food = this.generateFood();
+      // Solo generar nueva comida si la serpiente realmente se comió la comida actual
+      if (this.food) {
+        this.food = await this.generateFood();
+      }
       // Increase speed only if not in special mode
       if (!this.isSpecialMode) {
         this.speed = Math.max(100, this.speed - 5);
@@ -206,7 +351,7 @@ class SnakeGame {
 
     // Update glow effect
     if (this.isSpecialMode) {
-      this.glowIntensity += 0.3 * this.glowDirection; // Velocidad del brillo aumentada
+      this.glowIntensity += 0.3 * this.glowDirection;
       if (this.glowIntensity >= 1) {
         this.glowIntensity = 1;
         this.glowDirection = -1;
@@ -706,14 +851,14 @@ class SnakeGame {
     }
   }
 
-  start() {
+  async start() {
     this.gameOver = false;
     this.snake = [{ x: 5, y: 5 }];
     this.direction = "right";
     this.nextDirection = "right";
     this.score = 0;
     this.speed = 200;
-    this.food = this.generateFood();
+    this.food = await this.generateFood();
     this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
@@ -731,6 +876,23 @@ class SnakeGame {
     this.gameOverElement.style.display = "none";
 
     requestAnimationFrame(this.gameLoop.bind(this));
+
+    // Iniciar monitoreo del sistema
+    this.iniciarMonitoreoSistema();
+  }
+
+  iniciarMonitoreoSistema() {
+    if (this.monitoreoActivo) return;
+
+    this.monitoreoActivo = true;
+
+    // Simular monitoreo de CPU y RAM (en un caso real, esto vendría del sistema)
+    setInterval(() => {
+      const cpu = Math.random() * 100; // Simulación de uso de CPU
+      const ram = Math.random() * 100; // Simulación de uso de RAM
+
+      this.actualizarEstadoNodo(cpu, ram);
+    }, 5000); // Actualizar cada 5 segundos, pero solo si hay cambios significativos
   }
 }
 
@@ -760,11 +922,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Handle button controls
-  document.getElementById("startBtn").addEventListener("click", () => {
-    game.start();
+  document.getElementById("startBtn").addEventListener("click", async () => {
+    await game.start();
   });
 
-  document.getElementById("playAgainBtn").addEventListener("click", () => {
-    game.start();
-  });
+  document
+    .getElementById("playAgainBtn")
+    .addEventListener("click", async () => {
+      await game.start();
+    });
+
+  // Iniciar el monitoreo del servidor
+  fetch("/iniciar-monitoreo")
+    .then((response) => response.text())
+    .then((data) => console.log(data))
+    .catch((error) => console.error("Error al iniciar monitoreo:", error));
 });
