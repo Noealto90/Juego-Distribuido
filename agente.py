@@ -142,51 +142,17 @@ class Agente:
         """Inicializa las manzanas en Firebase"""
         comida_ref = self.db.collection('comida')
         
-        # Verificar y actualizar la manzana normal
-        manzana_normal = comida_ref.document('Normal').get()
-        if manzana_normal.exists:
-            datos = manzana_normal.to_dict()
-            ubicacion = datos.get('ubicacion', {})
-            x, y = ubicacion.get('x', 0), ubicacion.get('y', 0)
-            
-            # Si la posición actual coincide con un obstáculo, generar nueva posición
-            if not self._es_posicion_valida(x, y):
-                nueva_manzana = self._generar_nueva_manzana()
-                nueva_manzana['estado'] = 0
-                comida_ref.document('Normal').set(nueva_manzana)
-                print("Manzana Normal actualizada debido a obstáculo")
-            else:
-                # Solo actualizar el estado a 0
-                comida_ref.document('Normal').update({'estado': 0})
-        else:
-            # Crear nueva manzana normal
-            nueva_manzana = self._generar_nueva_manzana()
-            nueva_manzana['estado'] = 0
-            comida_ref.document('Normal').set(nueva_manzana)
-            print("Nueva manzana Normal creada")
+        # Siempre generar nueva manzana normal al inicio
+        nueva_manzana_normal = self._generar_nueva_manzana()
+        nueva_manzana_normal['estado'] = 0
+        comida_ref.document('Normal').set(nueva_manzana_normal)
+        print("Nueva manzana Normal generada al inicio")
         
-        # Verificar y actualizar la manzana de respaldo
-        manzana_respaldo = comida_ref.document('Respaldo').get()
-        if manzana_respaldo.exists:
-            datos = manzana_respaldo.to_dict()
-            ubicacion = datos.get('ubicacion', {})
-            x, y = ubicacion.get('x', 0), ubicacion.get('y', 0)
-            
-            # Si la posición actual coincide con un obstáculo, generar nueva posición
-            if not self._es_posicion_valida(x, y):
-                nueva_manzana = self._generar_nueva_manzana()
-                nueva_manzana['estado'] = 0
-                comida_ref.document('Respaldo').set(nueva_manzana)
-                print("Manzana Respaldo actualizada debido a obstáculo")
-            else:
-                # Solo actualizar el estado a 0
-                comida_ref.document('Respaldo').update({'estado': 0})
-        else:
-            # Crear nueva manzana de respaldo
-            nueva_manzana = self._generar_nueva_manzana()
-            nueva_manzana['estado'] = 0
-            comida_ref.document('Respaldo').set(nueva_manzana)
-            print("Nueva manzana Respaldo creada")
+        # Siempre generar nueva manzana de respaldo al inicio
+        nueva_manzana_respaldo = self._generar_nueva_manzana()
+        nueva_manzana_respaldo['estado'] = 0
+        comida_ref.document('Respaldo').set(nueva_manzana_respaldo)
+        print("Nueva manzana Respaldo generada al inicio")
 
     def _monitorear_manzanas(self):
         """Monitorea continuamente el estado de las manzanas"""
