@@ -52,7 +52,7 @@ def contar_tareas_por_nodo() -> Dict[str, int]:
             conteo[nodo] = conteo.get(nodo, 0) + 1
     return conteo
 
-def reasignar_tareas(nodo_sobrecargado: Dict):
+def reasignar_tareas(nodo_actual: Dict):
     try:
         nodos_ref = db.collection('nodos')
         nodos = [doc.to_dict() for doc in nodos_ref.stream()]
@@ -67,12 +67,23 @@ def reasignar_tareas(nodo_sobrecargado: Dict):
         for nodo in nodos:
             print(f" - {nodo['nombre']}: {conteo_tareas.get(nodo['nombre'], 0)} tarea(s)")
 
-        # Filtrar nodos disponibles (que no están sobrecargados y no son el nodo actual)
-        nodos_disponibles = [
+        # Primero, buscar nodos que no tienen tareas y no están sobrecargados
+        nodos_sin_tareas = [
             n for n in nodos
-            if n['nombre'] != nodo_sobrecargado['nombre']
+            if n['nombre'] != nodo_actual['nombre']
             and not nodo_sobrecargado(n)
+            and conteo_tareas.get(n['nombre'], 0) == 0
         ]
+
+        # Si no hay nodos sin tareas, buscar nodos no sobrecargados
+        if not nodos_sin_tareas:
+            nodos_disponibles = [
+                n for n in nodos
+                if n['nombre'] != nodo_actual['nombre']
+                and not nodo_sobrecargado(n)
+            ]
+        else:
+            nodos_disponibles = nodos_sin_tareas
 
         if not nodos_disponibles:
             print("No hay nodos disponibles para reasignar tareas.")
@@ -86,21 +97,22 @@ def reasignar_tareas(nodo_sobrecargado: Dict):
         tareas_reasignadas = 0
 
         # Obtener tareas del nodo sobrecargado
-        tareas_a_reasignar = [a for a in asignaciones if a.to_dict().get('nodo') == nodo_sobrecargado['nombre']]
+        tareas_a_reasignar = [a for a in asignaciones if a.to_dict().get('nodo') == nodo_actual['nombre']]
 
         if not tareas_a_reasignar:
             print("No hay tareas que reasignar.")
             return
 
-        # Reasignar tareas de forma rotativa a los nodos disponibles
-        for i, asignacion in enumerate(tareas_a_reasignar):
-            nodo_destino = nodos_disponibles[i % len(nodos_disponibles)]  # distribución rotativa
+        # Reasignar tareas al mejor nodo disponible
+        for asignacion in tareas_a_reasignar:
+            # Siempre usar el primer nodo disponible (el mejor según calcular_puntuacion_nodo)
+            nodo_destino = nodos_disponibles[0]
             asignaciones_ref.document(asignacion.id).update({
                 'nodo': nodo_destino['nombre'],
                 'fecha_actualizacion': datetime.datetime.now()
             })
             tareas_reasignadas += 1
-            print(f"Tarea reasignada a {nodo_destino['nombre']}")
+            print(f"Tarea reasignada a {nodo_destino['nombre']} (CPU: {nodo_destino['cpu']}%, RAM: {nodo_destino['ram']}%)")
 
         print(f"{tareas_reasignadas} tarea(s) reasignadas de forma distribuida.")
 
