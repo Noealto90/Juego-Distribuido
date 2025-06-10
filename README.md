@@ -2,9 +2,11 @@
 
 Este proyecto consiste en la implementación de un juego tipo Snake con una arquitectura distribuida. Cada componente del sistema se encarga de tareas específicas como la gestión de partidas, la lógica del juego, el monitoreo de nodos y la administración de puntuaciones. Se utilizan tecnologías como Flask, Firebase y Pygame para lograr un entorno interactivo, escalable y eficiente.
 
-# Imagen del juego
+# Imagen del Juego
 ![image](https://github.com/user-attachments/assets/b0074e56-d5a4-48d2-b351-1bbd50c954d4)
 
+# Imagen del Inicio
+![image](https://github.com/user-attachments/assets/2e453a0b-79d3-4783-a17f-bf85c8341fed)
 
 ## 📦 Estructura del Proyecto
 
