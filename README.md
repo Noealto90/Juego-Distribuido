@@ -5,9 +5,6 @@ Este proyecto consiste en la implementación de un juego tipo Snake con una arqu
 # Imagen del Juego
 ![image](https://github.com/user-attachments/assets/b0074e56-d5a4-48d2-b351-1bbd50c954d4)
 
-# Imagen del Inicio
-![image](https://github.com/user-attachments/assets/2e453a0b-79d3-4783-a17f-bf85c8341fed)
-
 ## 📦 Estructura del Proyecto
 
 ```
