@@ -239,11 +239,11 @@ class Agente:
 
     def _procesar_puntos_periodicamente(self):
         """
-        Ejecuta el procesamiento de puntos cada 5 segundos
+        Ejecuta el procesamiento de puntos cada 0.5 segundos
         """
         while True:
             self._procesar_puntos()
-            time.sleep(5)
+            time.sleep(0.5)  # Reducido de 5 segundos a 0.5 segundos
 
     def _generar_obstaculos_aleatorios(self, cantidad=15):
         """Genera obstáculos aleatorios, reemplaza los existentes en Firebase"""

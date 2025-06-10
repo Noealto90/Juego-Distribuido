@@ -7,6 +7,7 @@ import {
   updateDoc,
   onSnapshot,
   addDoc,
+  doc,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuración de Firebase
@@ -253,21 +254,26 @@ class SnakeGame {
   async iniciarMonitoreoPuntuacion() {
     try {
       const puntuacionRef = collection(db, "puntuacion");
+      const puntuacionDoc = doc(puntuacionRef, "total");
 
-      // Escuchar cambios en la puntuación
-      onSnapshot(puntuacionRef, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "modified" || change.type === "added") {
-            const data = change.doc.data();
+      // Escuchar cambios en la puntuación específica
+      onSnapshot(
+        puntuacionDoc,
+        (doc) => {
+          if (doc.exists()) {
+            const data = doc.data();
             if (data.total !== undefined) {
               this.score = data.total;
-              // Actualizar el score en el DOM
+              // Actualizar el score en el DOM inmediatamente
               this.scoreElement.textContent = this.score;
               console.log(`Puntuación actualizada: ${this.score}`);
             }
           }
-        });
-      });
+        },
+        (error) => {
+          console.error("Error en el monitoreo de puntuación:", error);
+        }
+      );
     } catch (error) {
       console.error("Error al iniciar monitoreo de puntuación:", error);
     }
@@ -924,8 +930,18 @@ class SnakeGame {
     this.nextDirection = "right";
     this.score = 0;
     this.speed = 200;
+
+    // Actualizar puntuación a 0 en Firebase
+    try {
+      const puntuacionRef = collection(db, "puntuacion");
+      const puntuacionDoc = doc(puntuacionRef, "total");
+      await updateDoc(puntuacionDoc, { total: 0 });
+      console.log("Puntuación reiniciada a 0 en Firebase");
+    } catch (error) {
+      console.error("Error al reiniciar la puntuación:", error);
+    }
+
     this.food = await this.generateFood();
-    await this.generateObstacles(); // Generar obstáculos al iniciar
     await this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
