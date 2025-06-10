@@ -8,6 +8,7 @@ import {
   onSnapshot,
   addDoc,
   doc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuración de Firebase
@@ -309,7 +310,7 @@ class SnakeGame {
       head.y >= this.canvas.height / this.gridSize
     ) {
       this.gameOver = true;
-      this.showGameOver();
+      await this.showGameOver();
       return;
     }
 
@@ -318,7 +319,7 @@ class SnakeGame {
       this.snake.some((segment) => segment.x === head.x && segment.y === head.y)
     ) {
       this.gameOver = true;
-      this.showGameOver();
+      await this.showGameOver();
       return;
     }
 
@@ -330,7 +331,7 @@ class SnakeGame {
       )
     ) {
       this.gameOver = true;
-      this.showGameOver();
+      await this.showGameOver();
       return;
     }
 
@@ -452,10 +453,32 @@ class SnakeGame {
     }
   }
 
-  showGameOver() {
-    this.gameOverElement.style.display = "block";
-    this.finalScoreElement.textContent = this.score;
-    this.finalTimeElement.textContent = this.formatTime(this.elapsedTime);
+  async showGameOver() {
+    try {
+      // Obtener la puntuación actualizada de Firebase
+      const puntuacionRef = collection(db, "puntuacion");
+      const puntuacionDoc = doc(puntuacionRef, "total");
+      const docSnap = await getDoc(puntuacionDoc);
+
+      let puntuacionFinal = this.score;
+      if (docSnap.exists()) {
+        puntuacionFinal = docSnap.data().total;
+      }
+
+      // Actualizar la puntuación local
+      this.score = puntuacionFinal;
+
+      // Mostrar la ventana de fin de juego con la puntuación actualizada
+      this.gameOverElement.style.display = "block";
+      this.finalScoreElement.textContent = puntuacionFinal;
+      this.finalTimeElement.textContent = this.formatTime(this.elapsedTime);
+    } catch (error) {
+      console.error("Error al obtener la puntuación final:", error);
+      // En caso de error, mostrar la puntuación local
+      this.gameOverElement.style.display = "block";
+      this.finalScoreElement.textContent = this.score;
+      this.finalTimeElement.textContent = this.formatTime(this.elapsedTime);
+    }
   }
 
   activateSpecialMode() {
@@ -937,12 +960,29 @@ class SnakeGame {
       const puntuacionDoc = doc(puntuacionRef, "total");
       await updateDoc(puntuacionDoc, { total: 0 });
       console.log("Puntuación reiniciada a 0 en Firebase");
+
+      // Actualizar estado del juego a "reiniciar"
+      const estadoJuegoRef = doc(db, "estado_juego", "juego");
+      await updateDoc(estadoJuegoRef, { estado: "reiniciar" });
+      console.log("Estado del juego actualizado a 'reiniciar'");
+
+      // Esperar a que los obstáculos se regeneren
+      await new Promise((resolve) => {
+        const unsubscribe = onSnapshot(estadoJuegoRef, (doc) => {
+          if (doc.exists() && doc.data().estado === "activo") {
+            unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      // Cargar los nuevos obstáculos
+      await this.generateObstacles();
     } catch (error) {
-      console.error("Error al reiniciar la puntuación:", error);
+      console.error("Error al reiniciar el juego:", error);
     }
 
     this.food = await this.generateFood();
-    await this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
     this.elapsedTime = 0;

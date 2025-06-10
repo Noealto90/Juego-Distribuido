@@ -37,6 +37,10 @@ class Agente:
             self.obstaculos = self._generar_obstaculos_aleatorios()
             self.procesar_puntos_thread = threading.Thread(target=self._procesar_puntos_periodicamente, daemon=True)
             self.procesar_puntos_thread.start()
+            
+            # Iniciar el monitoreo del estado del juego
+            self.monitor_estado_juego_thread = threading.Thread(target=self._monitorear_estado_juego, daemon=True)
+            self.monitor_estado_juego_thread.start()
         else:
             print("Este nodo no tiene asignada la tarea de Obstáculo. No se procesarán puntos.")
         
@@ -270,6 +274,26 @@ class Agente:
 
         print(f"\nTotal de {len(lista_obstaculos)} obstáculos generados y guardados en Firebase.")
         return obstaculos
+
+    def _monitorear_estado_juego(self):
+        """
+        Monitorea el estado del juego y regenera obstáculos cuando sea necesario
+        """
+        estado_juego_ref = self.db.collection('estado_juego').document('juego')
+        
+        def on_snapshot(doc_snapshot, changes, read_time):
+            for doc in doc_snapshot:
+                if doc.exists:
+                    estado = doc.to_dict().get('estado')
+                    if estado == 'reiniciar':
+                        print("Estado del juego: REINICIAR. Regenerando obstáculos...")
+                        self.obstaculos = self._generar_obstaculos_aleatorios()
+                        # Actualizar el estado a 'activo' después de regenerar
+                        estado_juego_ref.update({'estado': 'activo'})
+                        print("Obstáculos regenerados y estado actualizado a 'activo'")
+        
+        # Suscribirse a los cambios en el documento de estado del juego
+        estado_juego_ref.on_snapshot(on_snapshot)
 
 if __name__ == "__main__":
     agente = Agente()

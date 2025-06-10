@@ -211,8 +211,13 @@ def juego():
         puntuacion_ref = db.collection('puntuacion').document('total')
         puntuacion_ref.set({'total': 0})
         print("Puntuación reiniciada a 0 correctamente")
+        
+        # Actualizar el estado del juego a "reiniciar"
+        estado_juego_ref = db.collection('estado_juego').document('juego')
+        estado_juego_ref.set({'estado': 'reiniciar'})
+        print("Estado del juego actualizado a 'reiniciar'")
     except Exception as e:
-        print(f"Error al reiniciar la puntuación: {str(e)}")
+        print(f"Error al reiniciar el juego: {str(e)}")
     
     return render_template('game.html')
 
