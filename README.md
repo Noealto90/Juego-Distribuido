@@ -3,6 +3,7 @@
 Este proyecto consiste en la implementación de un juego tipo Snake con una arquitectura distribuida. Cada componente del sistema se encarga de tareas específicas como la gestión de partidas, la lógica del juego, el monitoreo de nodos y la administración de puntuaciones. Se utilizan tecnologías como Flask, Firebase y Pygame para lograr un entorno interactivo, escalable y eficiente.
 
 # Imagen del Juego
+
 ![image](https://github.com/user-attachments/assets/b0074e56-d5a4-48d2-b351-1bbd50c954d4)
 
 ## 📦 Estructura del Proyecto
@@ -154,11 +155,17 @@ python main.py
 - Control de la serpiente
 - Detección de colisiones
 
-### Nodo de Puntuación
+### Agente: Tarea - Obstáculos
 
 - Gestión de puntuaciones
-- Tabla de clasificación
-- Estadísticas de jugadores
+- Generar los obstáculos del juego
+- Actualizar los obstáculos cada vez que se reinicia el juego
+
+### Agente: Tarea - Comida
+
+- Generar las manzanas del juego (ubicación y tipo).
+- Actualiza las manzanas cada vez que la serpiente se come alguna.
+- Cuenta con una manzana de respaldo por si la serpiente se come dos manzanas muy seguidas.
 
 ## 📈 Funcionalidades Destacadas
 
@@ -170,6 +177,68 @@ python main.py
 - Persistencia de datos con Firebase
 - Interfaz web responsiva
 - Comunicación eficiente con Firebase
+
+## 🔍 Detalles Técnicos Adicionales
+
+### Balanceo de Carga
+
+El sistema implementa un balanceo de carga inteligente con las siguientes características:
+
+- Umbral de sobrecarga configurable:
+
+  - CPU: 80%
+  - RAM: 80%
+
+- Algoritmo de puntuación para nodos:
+  - Peso CPU: 70%
+  - Peso RAM: 30%
+
+### Funciones Principales
+
+1. **Cálculo de Puntuación de Nodos**
+
+```python
+def calcular_puntuacion_nodo(nodo: Dict) -> float:
+    cpu_weight = 0.7
+    ram_weight = 0.3
+    cpu_score = nodo['cpu'] / 100
+    ram_score = nodo['ram'] / 100
+    return (cpu_score * cpu_weight) + (ram_score * ram_weight)
+```
+
+2. **Detección de Sobrecarga**
+
+```python
+def nodo_sobrecargado(nodo: Dict) -> bool:
+    return nodo['cpu'] > SOBRECARGA_CPU or nodo['ram'] > SOBRECARGA_RAM
+```
+
+3. **Reasignación de Tareas**
+
+- Sistema de reasignación automática cuando se detecta sobrecarga
+- Priorización de nodos sin tareas
+- Distribución equitativa de la carga
+
+### Endpoints Disponibles
+
+1. `/` - Página de inicio
+2. `/juego` - Interfaz del juego
+3. `/asignar` - Asignación de tareas
+4. `/iniciar-monitoreo` - Inicio del sistema de monitoreo
+
+### Monitoreo en Tiempo Real
+
+- Sistema de eventos para detectar cambios en nodos
+- Reasignación automática de tareas
+- Monitoreo de CPU y RAM
+- Registro de tareas por nodo
+
+### Gestión de Tareas
+
+- Asignación automática de tareas "Comida" y "Obstáculo"
+- Sistema de priorización de nodos
+- Limpieza y reinicio de asignaciones
+- Persistencia de datos en Firebase
 
 ## 🤝 Colaboradores
 
