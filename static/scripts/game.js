@@ -926,6 +926,7 @@ class SnakeGame {
     this.speed = 200;
     this.food = await this.generateFood();
     await this.generateObstacles(); // Generar obstáculos al iniciar
+    await this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
     this.elapsedTime = 0;
