@@ -13,7 +13,7 @@ db = firestore.client()
 
 # Umbral de sobrecarga (en porcentaje)
 SOBRECARGA_CPU = 80
-SOBRECARGA_RAM = 80
+SOBRECARGA_RAM = 100
 
 def calcular_puntuacion_nodo(nodo: Dict) -> float:
     """
@@ -39,39 +39,74 @@ def nodo_sobrecargado(nodo: Dict) -> bool:
     """
     return nodo['cpu'] > SOBRECARGA_CPU or nodo['ram'] > SOBRECARGA_RAM
 
+def contar_tareas_por_nodo() -> Dict[str, int]:
+    """
+    Cuenta cuántas tareas tiene asignadas cada nodo.
+    """
+    asignaciones = db.collection('asignaciones').stream()
+    conteo = {}
+    for asignacion in asignaciones:
+        data = asignacion.to_dict()
+        nodo = data.get('nodo')
+        if nodo:
+            conteo[nodo] = conteo.get(nodo, 0) + 1
+    return conteo
+
 def reasignar_tareas(nodo_sobrecargado: Dict):
-    """
-    Reasigna las tareas cuando un nodo específico está sobrecargado
-    """
     try:
-        # Obtener todos los nodos
         nodos_ref = db.collection('nodos')
         nodos = [doc.to_dict() for doc in nodos_ref.stream()]
         
         if len(nodos) < 2:
-            print("Se necesitan al menos 2 nodos para realizar las asignaciones")
+            print("Se necesitan al menos 2 nodos para realizar reasignaciones.")
             return
-        
-        # Encontrar el nodo menos cargado (excluyendo el nodo sobrecargado)
-        nodos_disponibles = [n for n in nodos if n['nombre'] != nodo_sobrecargado['nombre']]
+
+        conteo_tareas = contar_tareas_por_nodo()
+
+        print("📊 Tareas por nodo al momento de reasignar:")
+        for nodo in nodos:
+            print(f" - {nodo['nombre']}: {conteo_tareas.get(nodo['nombre'], 0)} tarea(s)")
+
+        # Filtrar nodos disponibles (que no están sobrecargados y no son el nodo actual)
+        nodos_disponibles = [
+            n for n in nodos
+            if n['nombre'] != nodo_sobrecargado['nombre']
+            and not nodo_sobrecargado(n)
+        ]
+
         if not nodos_disponibles:
+            print("No hay nodos disponibles para reasignar tareas.")
             return
-            
-        nodo_menos_cargado = min(nodos_disponibles, key=calcular_puntuacion_nodo)
-        
-        # Actualizar todas las asignaciones al nodo menos cargado
+
+        # Ordenar nodos disponibles por carga (mejor puntuación primero)
+        nodos_disponibles.sort(key=calcular_puntuacion_nodo)
+
         asignaciones_ref = db.collection('asignaciones')
-        asignaciones = asignaciones_ref.stream()
-        
-        for asignacion in asignaciones:
+        asignaciones = list(asignaciones_ref.stream())
+        tareas_reasignadas = 0
+
+        # Obtener tareas del nodo sobrecargado
+        tareas_a_reasignar = [a for a in asignaciones if a.to_dict().get('nodo') == nodo_sobrecargado['nombre']]
+
+        if not tareas_a_reasignar:
+            print("No hay tareas que reasignar.")
+            return
+
+        # Reasignar tareas de forma rotativa a los nodos disponibles
+        for i, asignacion in enumerate(tareas_a_reasignar):
+            nodo_destino = nodos_disponibles[i % len(nodos_disponibles)]  # distribución rotativa
             asignaciones_ref.document(asignacion.id).update({
-                'nodo': nodo_menos_cargado['nombre'],
+                'nodo': nodo_destino['nombre'],
                 'fecha_actualizacion': datetime.datetime.now()
             })
-        
-        print(f"Tareas reasignadas al nodo {nodo_menos_cargado['nombre']} debido a sobrecarga del nodo {nodo_sobrecargado['nombre']}")
+            tareas_reasignadas += 1
+            print(f"Tarea reasignada a {nodo_destino['nombre']}")
+
+        print(f"{tareas_reasignadas} tarea(s) reasignadas de forma distribuida.")
+
     except Exception as e:
-        print(f"Error en reasignación de tareas: {str(e)}")
+        print(f"Error en la reasignación de tareas: {str(e)}")
+
 
 def monitoreo_por_eventos():
     """
@@ -89,38 +124,79 @@ def monitoreo_por_eventos():
     nodos_ref = db.collection('nodos')
     nodos_ref.on_snapshot(on_nodo_change)
 
+def obtener_carga_promedio(nodo: Dict) -> float:
+    """
+    Calcula la carga promedio de un nodo (CPU + RAM) / 2
+    """
+    return (nodo['cpu'] + nodo['ram']) / 2
+
+def obtener_tareas_asignadas(nodo_nombre: str) -> List[str]:
+    """
+    Obtiene la lista de tareas asignadas a un nodo específico
+    """
+    asignaciones_ref = db.collection('asignaciones')
+    asignaciones = asignaciones_ref.where('nodo', '==', nodo_nombre).stream()
+    return [doc.to_dict()['tarea'] for doc in asignaciones]
+
 def asignar_tareas():
+    """
+    Asigna las tareas "Comida" y "Obstáculo" siguiendo el algoritmo de asignación
+    basado en la carga de recursos de los nodos.
+    """
     # Obtener todos los nodos
     nodos_ref = db.collection('nodos')
     nodos = [doc.to_dict() for doc in nodos_ref.stream()]
     
-    if len(nodos) < 2:
-        print("Se necesitan al menos 2 nodos para realizar las asignaciones")
+    if len(nodos) < 1:
+        print("Se necesita al menos 1 nodo para realizar las asignaciones")
         return
     
-    # Ordenar nodos por puntuación
-    nodos_ordenados = sorted(nodos, key=calcular_puntuacion_nodo)
+    # Tareas a asignar
+    tareas = ["Comida", "Obstáculo"]
     
-    # Seleccionar los dos mejores nodos
-    mejor_nodo = nodos_ordenados[0]
-    segundo_mejor_nodo = nodos_ordenados[1]
-    
-    # Crear o actualizar la colección de asignaciones
-    asignaciones_ref = db.collection('asignaciones')
-    
-    # Asignar tarea de Comida al mejor nodo
-    asignaciones_ref.add({
-        'nodo': mejor_nodo['nombre'],
-        'tarea': 'Comida',
-        'fecha_asignacion': datetime.datetime.now()
-    })
-    
-    # Asignar tarea de Obstáculo al segundo mejor nodo
-    asignaciones_ref.add({
-        'nodo': segundo_mejor_nodo['nombre'],
-        'tarea': 'Obstáculo',
-        'fecha_asignacion': datetime.datetime.now()
-    })
+    for tarea in tareas:
+        # Paso a: Buscar nodos no sobrecargados sin tareas
+        nodos_candidatos = []
+        for nodo in nodos:
+            tareas_asignadas = obtener_tareas_asignadas(nodo['nombre'])
+            if not nodo_sobrecargado(nodo) and not tareas_asignadas:
+                nodos_candidatos.append(nodo)
+        
+        # Paso b: Si no hay candidatos sin tareas, buscar nodos no sobrecargados
+        if not nodos_candidatos:
+            nodos_candidatos = [nodo for nodo in nodos if not nodo_sobrecargado(nodo)]
+        
+        # Paso c: Si aún no hay candidatos, incluir todos los nodos
+        if not nodos_candidatos:
+            nodos_candidatos = nodos
+        
+        # Paso d: Seleccionar el nodo con menor carga promedio
+        mejor_nodo = min(nodos_candidatos, key=obtener_carga_promedio)
+        
+        # Paso e: Asignar la tarea
+        asignaciones_ref = db.collection('asignaciones')
+        asignaciones_ref.add({
+            'nodo': mejor_nodo['nombre'],
+            'tarea': tarea,
+            'fecha_asignacion': datetime.datetime.now()
+        })
+        
+        print(f"Tarea '{tarea}' asignada al nodo {mejor_nodo['nombre']} (CPU: {mejor_nodo['cpu']}%, RAM: {mejor_nodo['ram']}%)")
+
+def limpiar_asignacion():
+    """
+    Elimina todas las asignaciones existentes en la colección 'asignaciones'
+    """
+    try:
+        asignaciones_ref = db.collection('asignaciones')
+        asignaciones = asignaciones_ref.stream()
+        
+        for asignacion in asignaciones:
+            asignaciones_ref.document(asignacion.id).delete()
+        
+        print("Todas las asignaciones han sido eliminadas correctamente")
+    except Exception as e:
+        print(f"Error al limpiar asignaciones: {str(e)}")
 
 app = Flask(__name__)
 
@@ -130,10 +206,19 @@ def index():
 
 @app.route('/juego')
 def juego():
+    # Reiniciar la puntuación a 0 en Firebase
+    try:
+        puntuacion_ref = db.collection('puntuacion').document('total')
+        puntuacion_ref.set({'total': 0})
+        print("Puntuación reiniciada a 0 correctamente")
+    except Exception as e:
+        print(f"Error al reiniciar la puntuación: {str(e)}")
+    
     return render_template('game.html')
 
 @app.route('/asignar')
 def asignar():
+    limpiar_asignacion()
     asignar_tareas()
     return "Tareas asignadas correctamente"
 

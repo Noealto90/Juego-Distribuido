@@ -6,6 +6,7 @@ import {
   getDocs,
   updateDoc,
   onSnapshot,
+  addDoc,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuración de Firebase
@@ -78,6 +79,9 @@ class SnakeGame {
 
     // Iniciar monitoreo de asignaciones
     this.iniciarMonitoreoAsignaciones();
+
+    // Iniciar monitoreo de puntuación
+    this.iniciarMonitoreoPuntuacion();
   }
 
   async iniciarMonitoreoAsignaciones() {
@@ -201,31 +205,71 @@ class SnakeGame {
     }
   }
 
-  generateObstacles() {
+  async generateObstacles() {
     this.obstacles = [];
-    const maxX = Math.floor(this.canvas.width / this.gridSize);
-    const maxY = Math.floor(this.canvas.height / this.gridSize);
+    try {
+      const obstaculosRef = collection(db, "obstaculo");
+      const querySnapshot = await getDocs(obstaculosRef);
 
-    for (let i = 0; i < this.numObstacles; i++) {
-      let obstacle;
-      do {
-        obstacle = {
-          x: Math.floor(Math.random() * maxX),
-          y: Math.floor(Math.random() * maxY),
-        };
-      } while (
-        // Evitar que los obstáculos aparezcan sobre la serpiente
-        this.snake.some(
-          (segment) => segment.x === obstacle.x && segment.y === obstacle.y
-        ) ||
-        // Evitar que los obstáculos aparezcan sobre la comida
-        (this.food.x === obstacle.x && this.food.y === obstacle.y) ||
-        // Evitar que los obstáculos aparezcan sobre otros obstáculos
-        this.obstacles.some(
-          (obs) => obs.x === obstacle.x && obs.y === obstacle.y
-        )
-      );
-      this.obstacles.push(obstacle);
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.obstaculo && Array.isArray(data.obstaculo)) {
+          this.obstacles = data.obstaculo.map((obs) => ({
+            x: obs.x,
+            y: obs.y,
+          }));
+          console.log("Obstáculos cargados desde Firebase:", this.obstacles);
+        }
+      });
+    } catch (error) {
+      console.error("Error al cargar obstáculos desde Firebase:", error);
+      // En caso de error, generar obstáculos por defecto
+      const maxX = Math.floor(this.canvas.width / this.gridSize);
+      const maxY = Math.floor(this.canvas.height / this.gridSize);
+
+      for (let i = 0; i < this.numObstacles; i++) {
+        let obstacle;
+        do {
+          obstacle = {
+            x: Math.floor(Math.random() * maxX),
+            y: Math.floor(Math.random() * maxY),
+          };
+        } while (
+          this.snake.some(
+            (segment) => segment.x === obstacle.x && segment.y === obstacle.y
+          ) ||
+          (this.food &&
+            this.food.x === obstacle.x &&
+            this.food.y === obstacle.y) ||
+          this.obstacles.some(
+            (obs) => obs.x === obstacle.x && obs.y === obstacle.y
+          )
+        );
+        this.obstacles.push(obstacle);
+      }
+    }
+  }
+
+  async iniciarMonitoreoPuntuacion() {
+    try {
+      const puntuacionRef = collection(db, "puntuacion");
+
+      // Escuchar cambios en la puntuación
+      onSnapshot(puntuacionRef, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "modified" || change.type === "added") {
+            const data = change.doc.data();
+            if (data.total !== undefined) {
+              this.score = data.total;
+              // Actualizar el score en el DOM
+              this.scoreElement.textContent = this.score;
+              console.log(`Puntuación actualizada: ${this.score}`);
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error al iniciar monitoreo de puntuación:", error);
     }
   }
 
@@ -293,10 +337,19 @@ class SnakeGame {
         // Remove the eaten obstacle
         this.obstacles.splice(obstacleIndex, 1);
         // Add points for eating obstacle
-        this.score += 20;
         this.showScoreAnimation(head.x, head.y, 20, "#9B59B6");
-        // Update score display
-        this.scoreElement.textContent = this.score;
+
+        // Guardar puntos en Firebase
+        try {
+          const puntosRef = collection(db, "puntos");
+          await addDoc(puntosRef, {
+            cantidad: 20,
+            estado: 0,
+            timestamp: new Date(),
+          });
+        } catch (error) {
+          console.error("Error al guardar puntos:", error);
+        }
       }
     }
 
@@ -304,14 +357,29 @@ class SnakeGame {
 
     // Check if food is eaten
     if (head.x === this.food.x && head.y === this.food.y) {
+      let puntosGanados = 0;
+
       if (this.food.isSpecial) {
-        this.score += 15;
+        puntosGanados = 15;
         this.activateSpecialMode();
-        this.showScoreAnimation(head.x, head.y, 15, "#FFD700");
+        this.showScoreAnimation(head.x, head.y, puntosGanados, "#FFD700");
       } else {
-        this.score += 10;
-        this.showScoreAnimation(head.x, head.y, 10, "#2ECC71");
+        puntosGanados = 10;
+        this.showScoreAnimation(head.x, head.y, puntosGanados, "#2ECC71");
       }
+
+      // Guardar puntos en Firebase
+      try {
+        const puntosRef = collection(db, "puntos");
+        await addDoc(puntosRef, {
+          cantidad: puntosGanados,
+          estado: 0,
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        console.error("Error al guardar puntos:", error);
+      }
+
       // Solo generar nueva comida si la serpiente realmente se comió la comida actual
       if (this.food) {
         this.food = await this.generateFood();
@@ -320,8 +388,6 @@ class SnakeGame {
       if (!this.isSpecialMode) {
         this.speed = Math.max(100, this.speed - 5);
       }
-      // Actualizar el score en el DOM
-      this.scoreElement.textContent = this.score;
     } else {
       this.snake.pop();
     }
@@ -859,7 +925,7 @@ class SnakeGame {
     this.score = 0;
     this.speed = 200;
     this.food = await this.generateFood();
-    this.generateObstacles(); // Generar obstáculos al iniciar
+    await this.generateObstacles(); // Generar obstáculos al iniciar
     this.lastRenderTime = 0;
     this.startTime = Date.now();
     this.elapsedTime = 0;
