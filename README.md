@@ -1,43 +1,14 @@
-# 🐍 Snake Game Distribuido
+# Distributed Snake Game
 
-Este proyecto consiste en la implementación de un juego tipo Snake con una arquitectura distribuida. Cada componente del sistema se encarga de tareas específicas como la gestión de partidas, la lógica del juego, el monitoreo de nodos y la administración de puntuaciones. Se utilizan tecnologías como Flask, Firebase y Pygame para lograr un entorno interactivo, escalable y eficiente.
+This project implements a **Snake-style game** with a **distributed architecture**.  
+Each system component handles specific tasks such as game management, logic processing, node monitoring, and score tracking.  
+It uses technologies like **Flask**, **Firebase**, and **Pygame** to create an interactive and scalable environment.
 
-# Imagen del Juego
+# Game Preview
 
 ![image](https://github.com/user-attachments/assets/b0074e56-d5a4-48d2-b351-1bbd50c954d4)
 
-## 📦 Estructura del Proyecto
-
-```
-snake-game-distribuido/
-├── config/
-│   ├── config.py
-│   └── firebase_config.py
-├── controlador/
-│   ├── central/
-│   │   ├── game_manager.py
-│   │   └── load_balancer.py
-│   ├── game/
-│   │   └── snake_game.py
-│   ├── score/
-│   │   └── score_manager.py
-│   ├── agente_reutilizable.py
-│   ├── central_reutilizable.py
-│   └── websocket_manager.py
-├── vista/
-│   ├── templates/
-│   │   └── game.html
-│   ├── styles/
-│   │   └── game.css
-│   └── scripts/
-│       └── game.js
-├── .env
-├── main.py
-├── README.md
-└── requirements.txt
-```
-
-## 🚀 Tecnologías Utilizadas
+## Technologies Used
 
 - Python 3.8+
 - Flask
@@ -47,79 +18,75 @@ snake-game-distribuido/
 - HTML5 / CSS3 / JavaScript
 - Git
 
-## ⚙️ Instalación
+## ⚙️ Installation
 
-1. **Clonar el repositorio**:
+1. **Clone the repository**:
 
 ```bash
 git clone <url-del-repositorio>
 cd snake-game-distribuido
 ```
 
-2. **Crear y activar entorno virtual**:
+2. **Create and activate a virtual environment**:
 
 ```bash
-# En Windows
+# On Windows
 python -m venv venv
 venv\Scripts\activate
 
-# En Linux/Mac
+# On Linux/Mac
 python -m venv venv
 source venv/bin/activate
 ```
 
-3. **Instalar dependencias**:
+3. **Install dependencies**:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configurar variables de entorno**:
+4. **Set up environment variables**:
 
-- Crear un archivo `.env` en la raíz del proyecto
-- Copiar el siguiente contenido:
+- Create a file named `.env` in the project root with the following content:
 
 ```
-# Configuración del servidor
+
 HOST=0.0.0.0
 PORT=5000
 
-# Configuración de Firebase
 FIREBASE_CREDENTIALS_PATH=clave-firebase.json
 
-# Configuración del juego
 GRID_SIZE=20
 GAME_SPEED=100
 
-# Configuración de WebSocket
 WS_HOST=localhost
 WS_PORT=5000
 ```
 
-5. **Configurar Firebase**:
+5. **Configure Firebase**:
 
 - Copiar el archivo `clave-firebase.json` a la raíz del proyecto
 - Asegurarse de que el archivo tenga los permisos correctos
 
-## 🎮 Ejecución
+## Run the Game
 
-1. **Iniciar el servidor backend**:
+1. **Start the backend server:**:
 
 ```bash
-# Asegurarse de estar en el entorno virtual
+# Ensure you are in the virtual environment
 python main.py
 ```
 
-2. **Acceder al frontend**:
+2. **Open the frontend**:
 
-- Abrir el navegador web
-- Navegar a `http://localhost:5000`
+- Open your web browser
+- Go to `http://localhost:5000`
 
-3. **Verificar la conexión**:
+3. **Check everything is working**:
 
-- El juego debería cargar en el navegador
-- La tabla de clasificación debería estar visible
-- Los controles del juego deberían funcionar
+- The game should load in the browser.
+- The leaderboard should be visible.
+- The controls should respond correctly
 
 ## 🔧 Solución de problemas comunes
 
@@ -141,61 +108,57 @@ python main.py
 - Verificar la consola del navegador para errores
 - Asegurarse de que el servidor backend está corriendo
 
-## 👥 División de Roles
+## Role Distribution
 
-### Nodo Central
+### Central Node
 
-- Gestión de partidas
-- Balanceo de carga
-- Monitoreo del sistema
+- Manages matches
+- Load balancing
+- System monitoring
 
-### Nodo de Juego
+### Game Node
 
-- Lógica del juego
-- Control de la serpiente
-- Detección de colisiones
+- Game logic
+- Snake movement
+- Collision detection
 
-### Agente: Tarea - Obstáculos
+### Agent – Obstacles
 
-- Gestión de puntuaciones
-- Generar los obstáculos del juego
-- Actualizar los obstáculos cada vez que se reinicia el juego
+- Manages scores
+- Generates and updates obstacles
 
-### Agente: Tarea - Comida
+### Agent – Food
 
-- Generar las manzanas del juego (ubicación y tipo).
-- Actualiza las manzanas cada vez que la serpiente se come alguna.
-- Cuenta con una manzana de respaldo por si la serpiente se come dos manzanas muy seguidas.
+- Generates apples (location and type)
+- Updates when the snake eats an apple
+- Keeps a backup apple in case of quick sequences
 
-## 📈 Funcionalidades Destacadas
+## Main Features
 
-- Juego de Snake distribuido
-- Balanceo de carga entre nodos
-- Monitoreo en tiempo real
-- Tabla de clasificación
-- Comunicación WebSocket
-- Persistencia de datos con Firebase
-- Interfaz web responsiva
-- Comunicación eficiente con Firebase
+- Distributed Snake game
+- Load balancing between nodes
+- Real-time monitoring
+- Leaderboard system
+- WebSocket communication
+- Firebase data persistence
+- Responsive web interface
 
-## 🔍 Detalles Técnicos Adicionales
+## Technical Details
 
-### Balanceo de Carga
+### Load Balancing
 
-El sistema implementa un balanceo de carga inteligente con las siguientes características:
+The system includes smart load balancing with:
 
-- Umbral de sobrecarga configurable:
+- Overload threshold:
 
   - CPU: 80%
   - RAM: 80%
 
-- Algoritmo de puntuación para nodos:
+- Node scoring algorithm:
   - Peso CPU: 70%
   - Peso RAM: 30%
 
-### Funciones Principales
-
-1. **Cálculo de Puntuación de Nodos**
+1. **Node Score Calculation**
 
 ```python
 def calcular_puntuacion_nodo(nodo: Dict) -> float:
@@ -213,39 +176,39 @@ def nodo_sobrecargado(nodo: Dict) -> bool:
     return nodo['cpu'] > SOBRECARGA_CPU or nodo['ram'] > SOBRECARGA_RAM
 ```
 
-3. **Reasignación de Tareas**
+3. **Task Reassignment**
 
-- Sistema de reasignación automática cuando se detecta sobrecarga
-- Priorización de nodos sin tareas
-- Distribución equitativa de la carga
+- Automatic reassignment system when overload is detected
+- Prioritization of nodes without tasks
+- Equitable distribution of load
 
-### Endpoints Disponibles
+### Available Endpoints
 
-1. `/` - Página de inicio
-2. `/juego` - Interfaz del juego
-3. `/asignar` - Asignación de tareas
-4. `/iniciar-monitoreo` - Inicio del sistema de monitoreo
+1. `/` - Home page
+2. `/game` - Game interface
+3. `/assign` - Task assignment
+4. `/start-monitoring` - Start monitoring system
 
-### Monitoreo en Tiempo Real
+### Real-Time Monitoring
 
-- Sistema de eventos para detectar cambios en nodos
-- Reasignación automática de tareas
-- Monitoreo de CPU y RAM
-- Registro de tareas por nodo
+- Event system to detect changes in nodes
+- Automatic task reassignment
+- CPU and RAM monitoring
+- Task log per node
 
-### Gestión de Tareas
+### Task Management
 
-- Asignación automática de tareas "Comida" y "Obstáculo"
-- Sistema de priorización de nodos
-- Limpieza y reinicio de asignaciones
-- Persistencia de datos en Firebase
+- Automatic assignment of “Food” and “Obstacle” tasks
+- Node prioritization system
+- Cleaning and restarting assignments
+- Data persistence in Firebase
 
-## 🤝 Colaboradores
+## Contributors
 
 - Noelia Alpízar Torres
 - Yeilyn Espinoza Zumbado
 - Jorge Valladares Blanco
 
-## 📄 Licencia
+## License
 
-Este proyecto es de uso académico para el curso de **Sistemas Operativos** - I Semestre 2025.
+This project was developed for academic purposes for the Operating Systems course – I Semester 2025.
