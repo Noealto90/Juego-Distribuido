@@ -65,8 +65,8 @@ WS_PORT=5000
 
 5. **Configure Firebase**:
 
-- Copiar el archivo `clave-firebase.json` a la raíz del proyecto
-- Asegurarse de que el archivo tenga los permisos correctos
+- Copy your `clave-firebase.json` file to the project root
+- Make sure it has the correct permissions
 
 ## Run the Game
 
@@ -88,25 +88,25 @@ python main.py
 - The leaderboard should be visible.
 - The controls should respond correctly
 
-## 🔧 Solución de problemas comunes
+## Common Issues
 
-1. **Error de conexión a Firebase**:
+1. **Firebase connection error**:
 
-- Verificar que `clave-firebase.json` existe y tiene el formato correcto
-- Comprobar la conexión a internet
-- Verificar las credenciales de Firebase
+- Verify that `firebase-key.json` exists and is formatted correctly
+- Check your internet connection
+- Verify your Firebase credentials
 
-2. **Error al iniciar el servidor**:
+2. **Error starting the server**:
 
-- Asegurarse de que el puerto 5000 no está en uso
-- Verificar que todas las dependencias están instaladas
-- Comprobar que el archivo `.env` existe y está configurado correctamente
+- Ensure that port 5000 is not in use
+- Verify that all dependencies are installed
+- Check that the `.env` file exists and is configured correctly
 
-3. **Problemas con el frontend**:
+3. **Frontend issues:**
 
-- Limpiar la caché del navegador
-- Verificar la consola del navegador para errores
-- Asegurarse de que el servidor backend está corriendo
+- Clear your browser cache
+- Check your browser console for errors
+- Ensure that the backend server is running
 
 ## Role Distribution
 
